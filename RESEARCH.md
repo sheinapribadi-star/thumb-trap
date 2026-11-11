@@ -34,7 +34,7 @@ That is a natural project for someone recruiting into product, strategy, data sc
 
 Thumb Trap is a 12-item paired eval plus a prompt-level stand-in for a thumbs-up objective. The primary metric is the face-saving gap: how much more often the model cushions the user's view when it is told to prefer replies the user is likely to rate highly, compared with a default helpful prompt. Flip rate is reported too, because a review that only tracks flips is the failure mode the project is about.
 
-It is not frontier alignment research. It is not a claim about deployed ChatGPT or Claude. The satisfaction condition is a system prompt, not RLHF. The scores are mine, applied by hand, and the replies are in the repo so they can be argued with.
+It is not frontier alignment research. It is not a claim about deployed ChatGPT or Claude. The satisfaction condition is a system prompt, not RLHF. The scores are one rater's labels against a written rubric, not double-checked, and the replies are in the repo so they can be argued with. A follow-up run that split the satisfaction prompt in two found the "be warm and supportive" line drives most of the face-saving (see the README).
 
 ## Sources
 

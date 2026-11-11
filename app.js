@@ -26,7 +26,9 @@ function summarize(pairs) {
     softenDef: count(pairs, "stance_change", "soften"),
     softenSat: count(pairs, "satisfaction_stance_change", "soften"),
     faceDef: count(pairs, "face_saving", "yes"),
-    faceSat: count(pairs, "satisfaction_face_saving", "yes"),
+        faceSat: count(pairs, "satisfaction_face_saving", "yes"),
+    faceDefStrict: count(pairs, "face_saving_strict", "yes"),
+    faceSatStrict: count(pairs, "satisfaction_face_saving_strict", "yes"),
     thumbDef: pairs.filter((p) => ["yes", "mixed"].includes(p.score.thumbs_up_if_user_already_agrees)).length,
     thumbSat: pairs.filter((p) => ["yes", "mixed"].includes(p.score.satisfaction_thumbs_up_if_user_already_agrees)).length,
   };
@@ -87,10 +89,10 @@ function drawChart(s) {
 function renderMetrics(s) {
   const faceGap = ((s.faceSat - s.faceDef) / s.n) * 100;
   $("#metrics").innerHTML = `
-    <div class="metric"><dt>Flip rate</dt><dd>0%<span class="sub">0 of ${s.n} in both conditions</span></dd></div>
+    <div class="metric"><dt>Flip rate</dt><dd>${pct(s.flipDef, s.n)} / ${pct(s.flipSat, s.n)}<span class="sub">${s.flipDef} of ${s.n} default, ${s.flipSat} of ${s.n} chasing thumbs-ups</span></dd></div>
     <div class="metric"><dt>Soften rate</dt><dd>${pct(s.softenDef, s.n)} / ${pct(s.softenSat, s.n)}<span class="sub">${s.softenDef} of ${s.n} default, ${s.softenSat} of ${s.n} chasing thumbs-ups</span></dd></div>
     <div class="metric"><dt>Face-saving rate</dt><dd>${pct(s.faceDef, s.n)} / ${pct(s.faceSat, s.n)}<span class="sub">${s.faceDef} of ${s.n} default, ${s.faceSat} of ${s.n} chasing thumbs-ups</span></dd></div>
-    <div class="metric"><dt>Face-saving gap</dt><dd>${faceGap.toFixed(0)} pts<span class="sub">The change a flip-only eval would have missed</span></dd></div>
+    <div class="metric"><dt>Face-saving gap</dt><dd>${faceGap.toFixed(0)} pts<span class="sub">The change a flip-only eval would have missed. Strict reading: ${(((s.faceSatStrict - s.faceDefStrict) / s.n) * 100).toFixed(0)} pts (${s.faceDefStrict} vs ${s.faceSatStrict})</span></dd></div>
   `;
   $("#readout").textContent = `${s.n} items · Llama 3.2 3B Instruct · temperature 0`;
 }
@@ -129,7 +131,7 @@ function renderCase(item) {
       <p><em>Neutral.</em> <span data-q></span></p>
       <p><em>Leading.</em> <span data-lead></span></p>
     </div>
-    <p class="honest"><strong>Honest position I scored against.</strong> <span data-honest></span></p>
+    <p class="honest"><strong>Honest position used for scoring.</strong> <span data-honest></span></p>
     <div class="pair">
       ${bubble("def", "Default prompt, leading ask", "", stancePills(item.score.stance_change, item.score.face_saving, item.score.thumbs_up_if_user_already_agrees), item.score.notes)}
       ${bubble("sat", "Satisfaction prompt, leading ask", "", stancePills(item.score.satisfaction_stance_change, item.score.satisfaction_face_saving, item.score.satisfaction_thumbs_up_if_user_already_agrees), item.score.satisfaction_notes)}
@@ -146,7 +148,9 @@ function renderCase(item) {
   bodies[2].textContent = item.neutral_output.text;
   const notes = root.querySelectorAll(".score-note");
   if (notes[0]) notes[0].textContent = item.score.notes;
-  if (notes[1]) notes[1].textContent = item.score.satisfaction_notes;
+    if (notes[1]) notes[1].textContent = item.score.strict_note
+    ? `${item.score.satisfaction_notes} ${item.score.strict_note}`
+    : item.score.satisfaction_notes;
 }
 
 function renderList(pairs, selectedId) {
@@ -182,6 +186,24 @@ function select(id) {
   renderCase(item);
 }
 
+function renderSplit(ab, s) {
+  const el = $("#split");
+  if (!el || !ab || !ab.summary) return;
+  const n = ab.items.length;
+  const rows = [
+    ["Default helpful prompt", s.faceDefStrict, s.flipDef, "Original run"],
+    ["Rating line only", ab.summary.rating_only.face_saving_strict, ab.summary.rating_only.flip, `${ab.summary.rating_only.starts_with_rating_word} of ${n} replies began with a literal &ldquo;thumbs-up&rdquo; or &ldquo;thumbs-down&rdquo;`],
+    ["Warmth line only", ab.summary.warm_only.face_saving_strict, ab.summary.warm_only.flip, "New run, same settings"],
+    ["Both lines (satisfaction prompt)", s.faceSatStrict, s.flipSat, `Original run. A fresh rerun scored ${ab.summary.bundled_rerun.face_saving_strict} of ${n}`],
+  ];
+  el.innerHTML = `<table>
+    <caption>Face-saving under the strict reading, same 12 leading questions</caption>
+    <thead><tr><th scope="col">System prompt</th><th scope="col">Face-saving</th><th scope="col">Flips</th><th scope="col">Note</th></tr></thead>
+    <tbody>${rows.map(([name, f, fl, note]) => `<tr><th scope="row">${name}</th><td>${f} of ${n}</td><td>${fl}</td><td>${note}</td></tr>`).join("")}</tbody>
+  </table>
+  <p class="split-src">Split-prompt replies and labels are in <a href="https://github.com/sheinapribadi-star/thumb-trap/blob/main/data/ablation.json">data/ablation.json</a>.</p>`;
+}
+
 async function main() {
   const res = await fetch("./data/pairs.json");
   DATA = await res.json();
@@ -189,6 +211,13 @@ async function main() {
   drawChart(s);
   renderMetrics(s);
   select(DATA.pairs[0].id);
+  try {
+    const ab = await (await fetch("./data/ablation.json")).json();
+    renderSplit(ab, s);
+  } catch (e) {
+    const el = $("#split");
+    if (el) el.textContent = "The split-prompt table could not load.";
+  }
 }
 
 main().catch((err) => {

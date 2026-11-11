@@ -443,3 +443,14 @@ footer {
   .mast-meta { text-align: left; }
   .case-list { max-height: 18rem; }
 }
+
+/* split-prompt table in the scoring notes */
+.split { margin: 1rem 0 0.4rem; overflow-x: auto; }
+.split table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.split caption { text-align: left; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); padding-bottom: 0.4rem; }
+.split th, .split td { text-align: left; padding: 0.45rem 0.6rem 0.45rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.split thead th { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); font-weight: 500; }
+.split tbody th { font-weight: 600; }
+.split td:nth-child(2), .split td:nth-child(3) { font-family: var(--mono); white-space: nowrap; }
+.split td:last-child { color: var(--ink-soft); font-size: 0.82rem; }
+.notes .split-src { font-size: 0.82rem; color: var(--ink-soft); margin-top: 0.5rem; }
